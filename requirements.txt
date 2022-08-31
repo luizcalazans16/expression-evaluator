@@ -1,0 +1,40 @@
+Dada as seguintes regras de produção para uma gramática de uma linguagem livre de contexto, cujo símbolo não-terminal inicial é "E":
+
+E -> TX
+X -> +TX
+     | -TX
+     | &
+T -> FY
+Y -> *FY
+     | /FY
+     | &
+F -> ( E )
+     | N
+N -> [+-]?([0-9][0-9]*(\.[0-9]*)?|\.[0-9][0-9]*)(e[0-9][0-9]*)?)?
+
+Onde "&" representa a palava vazia. Os símbolos terminais  {+,-,*,/}, representam as operações aritméticas de adição, subtração, multiplicação e divisão. A avaliação da expressão deve ser feita da direita para a esquerda, utilizando números com ponto flutuante.
+
+Em grupos de 3 alunos, o trabalho a ser entregue consiste em:
+
+- Alterar a gramática para incluir o operador de potenciação;
+- Alterar a gramática para incluir a utilização de identificadores nas expressões;
+- Alterar a gramática para incluir a operação de atribuição;
+- Alterar a gramática para incluir o uso de operações pré-definidas (por exemplo, sin, cos, log, sqrt);
+- Alterar a gramática para permitir a avaliação de várias expressões ;
+- Implementar um parser recursivo descendente que avalie uma lista de expressões, mostrando o resultado delas, ou erros no caso de expressões mal formadas.
+
+
+Artefatos a serem entregues:
+
+- Gramática livre de contexto resultante após as alterações necessárias
+- Código fonte do programa que implementa o avaliador de expressões
+
+A entrega dos artefatos deverá ser realizada a partir de um repositório de código público, hospedado no site https://github.com
+
+
+Observações:
+
+- Qualquer código utilizado que não for de autoria dos componentes do grupo deve ser devidamente creditado.
+- Será disponibilizada a implementação de um parser recursivo descendente para a gramática original, implementado na linguagem Python, este código pode ser utilizado, sem a necessidade de ser referenciado.
+
+- Qualquer uma das seguintes linguagens de programação podem ser utilizadas para a implementação do parser: C, C++, Java, Python, PHP, JavaScript (ou suas variações). Outras linguagen de programação devem ser aprovadas pelo professor.
