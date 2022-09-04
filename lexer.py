@@ -123,7 +123,7 @@ def parse_T(data):
     return F if T_prime is None else F * T_prime
 
 
-def parse_T_prime(data, integer=False):
+def parse_T_prime(data):
     """Parse an expression T'."""
     try:
         token, operator = next(data)
@@ -135,7 +135,7 @@ def parse_T_prime(data, integer=False):
         F = parse_F(data)
         _T_prime = parse_T_prime(data)  # noqa
         if _T_prime is not None:
-            F = parse_T(data)
+            return F * _T_prime
         # We don't need the result of the recursion,
         # only the recuscion itself
         return F if operator == "*" else 1 / F
@@ -178,7 +178,7 @@ def parse(source_code):
 
 if __name__ == "__main__":
     expressions = [
-        "E = 4 * 4 * 4",
+        "4 * 4 * 5",
     ]
     for expression in expressions:
         print(f"Expression: {expression}\t Result: {parse(expression)}")
