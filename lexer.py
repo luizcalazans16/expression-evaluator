@@ -22,6 +22,7 @@ class Lexer:
     CLOSE_PAR = 2
     OPERATOR = 3
     NUM = 4
+    IDENTIFIER = 5
 
     def __init__(self, data):
         """Initialize object."""
@@ -29,6 +30,7 @@ class Lexer:
         self.current = 0
         self.previous = -1
         self.num_re = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)(e\d+)?")
+        self.identifier = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
 
     def __iter__(self):
         """Start the lexer iterator."""
@@ -62,6 +64,16 @@ class Lexer:
             # Do not handle minus operator.
             if char in "+/*":
                 return (Lexer.OPERATOR, char)
+            if char in "^":
+                return (Lexer.OPERATOR, char)
+            # user defined identifier
+            if char in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_":
+                self.current -= 1
+                identifier = self.identifier.match(self.data, self.current)
+                if identifier is None:
+                    self.error("Invalid identifier")
+                self.current = identifier.end()
+                return (Lexer.IDENTIFIER, identifier.group())
             match = self.num_re.match(self.data[self.current - 1 :])
             if match is None:
                 # If there is no match we may have a minus operator
@@ -88,6 +100,7 @@ def parse_E_prime(data):
     """Parse an expression E'."""
     try:
         token, operator = next(data)
+        
     except StopIteration:
         return None
     if token == Lexer.OPERATOR:
@@ -106,24 +119,40 @@ def parse_T(data):
     """Parse an expression T."""
     F = parse_F(data)
     T_prime = parse_T_prime(data)
+    print('parse_T',F, T_prime)
     return F if T_prime is None else F * T_prime
 
 
-def parse_T_prime(data):
+def parse_T_prime(data, integer=False):
     """Parse an expression T'."""
     try:
         token, operator = next(data)
     except StopIteration:
         return None
     if token == Lexer.OPERATOR and operator in "*/":
+        
+        # else:
         F = parse_F(data)
+        _T_prime = parse_T_prime(data)  # noqa
+        if _T_prime is not None:
+            F = parse_T(data)
         # We don't need the result of the recursion,
         # only the recuscion itself
-        _T_prime = parse_T_prime(data)  # noqa
         return F if operator == "*" else 1 / F
+    if token == Lexer.OPERATOR and operator == "^":
+        #calculate power
+        F = parse_F(data)
+        _T_prime = parse_T_prime(data)
+    
+        return F * F
     data.put_back()
     return None
 
+# parse to potency
+def parse_potency(source_code):
+    """Parse the source code."""
+    lexer = Lexer(source_code)
+    return parse_T(lexer)
 
 def parse_F(data):
     """Parse an expression F."""
@@ -149,22 +178,7 @@ def parse(source_code):
 
 if __name__ == "__main__":
     expressions = [
-        "1 + 1",
-        "2 * 3",
-        "5 / 4",
-        "2 * 3 + 1",
-        "1 + 2 * 3",
-        "(2 * 3) + 1",
-        "2 * (3 + 1)",
-        "(2 + 1) * 3",
-        "-2 + 3",
-        "5 + (-2)",
-        "5 * -2",
-        "-1 - -2",
-        "-1 - 2",
-        "4 - 5",
-        "3 - ((8 + 3) * -2)",
-        "2.01e2 - 200"
+        "E = 4 * 4 * 4",
     ]
     for expression in expressions:
         print(f"Expression: {expression}\t Result: {parse(expression)}")
