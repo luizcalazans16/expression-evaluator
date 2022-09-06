@@ -1,17 +1,3 @@
-"""Implement a simple expression evaluator parses."""
-
-# For easier connection with class examples, we use names such as E or T_prime.
-# pylint: disable=invalid-name
-
-# Language definition:
-#
-# E = TE'
-# E' = +TE' | - TE' | &
-# T = FT'
-# T' = * FT' | / FT' | &
-# F = ( E ) | num
-# num = [+-]?([0-9]+(.[0-9]+)?|.[0-9]+)(e[0-9]+)+)?)
-
 import re
 
 
@@ -127,9 +113,24 @@ def parse_T(data):
     """Parse an expression T."""
     F = parse_F(data)
     T_prime = parse_T_prime(data)
+    F_prime = parse_F_prime(data)
+
+    if F_prime is not None:
+        return F ** F_prime
     print('parse_T',F, T_prime)
     return F if T_prime is None else F * T_prime
 
+def parse_F_prime(data):
+    try:
+        token, operator = next(data)
+    except StopIteration:
+        return None
+    if token == Lexer.POWER:
+        F = parse_F(data)
+        _F_prime = parse_F_prime(data)
+        return F if operator == "^" else None
+    data.put_back()
+    return None
 
 def parse_T_prime(data):
     """Parse an expression T'."""
@@ -146,11 +147,6 @@ def parse_T_prime(data):
         # We don't need the result of the recursion,
         # only the recuscion itself
         return F if operator == "*" else 1 / F
-    if token == Lexer.POWER:
-        #calculate power
-        F = parse_F(data)
-        _T_prime = parse_T_prime(data)
-        return F * F
     data.put_back()
     return None
 
