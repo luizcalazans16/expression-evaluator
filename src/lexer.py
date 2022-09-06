@@ -14,7 +14,7 @@
 
 import re
 
-WHITESPACE = ' \n\t'
+
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
 
 class Lexer:
@@ -109,11 +109,10 @@ def parse_E_prime(data):
     """Parse an expression E'."""
     try:
         token, operator = next(data)
-
     except StopIteration:
         return None
-    if token == Lexer.PLUS or token == Lexer.MINUS:
-        if operator not in "+-":
+    if token != Lexer.OPEN_PAR and token != Lexer.CLOSE_PAR:
+        if token != Lexer.PLUS and token != Lexer.MINUS:
             data.error(f"Unexpected token: '{operator}'.")
         T = parse_T(data)
         # We don't need the result of the recursion,
@@ -139,7 +138,6 @@ def parse_T_prime(data):
     except StopIteration:
         return None
     if token == Lexer.MULTIPLY or token == Lexer.DIVIDE:
-
         # else:
         F = parse_F(data)
         _T_prime = parse_T_prime(data)  # noqa
@@ -152,16 +150,9 @@ def parse_T_prime(data):
         #calculate power
         F = parse_F(data)
         _T_prime = parse_T_prime(data)
-
         return F * F
     data.put_back()
     return None
-
-# parse to potency
-def parse_potency(source_code):
-    """Parse the source code."""
-    lexer = Lexer(source_code)
-    return parse_T(lexer)
 
 def parse_F(data):
     """Parse an expression F."""
@@ -187,10 +178,11 @@ def parse(source_code):
 
 if __name__ == "__main__":
     expressions = [
+        "4 ^ 3",
         "4 * 4 * 5",
         "4 ^ 2 + (2 + 3)",
-        "4 * 4 * 4"
-
+        "4 * 4 * 4",
+        "105 / 9"
     ]
     for expression in expressions:
         print(f"Expression: {expression}\t Result: {parse(expression)}")
