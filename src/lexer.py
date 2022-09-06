@@ -14,15 +14,21 @@
 
 import re
 
+WHITESPACE = ' \n\t'
+LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
 
 class Lexer:
     """Implements the expression lexer."""
 
     OPEN_PAR = 1
     CLOSE_PAR = 2
-    OPERATOR = 3
-    NUM = 4
-    IDENTIFIER = 5
+    NUMBER = 3
+    PLUS      = 4
+    MINUS     = 5
+    MULTIPLY  = 6
+    DIVIDE    = 7
+    POWER = 8
+    IDENTIFIER = 9
 
     def __init__(self, data):
         """Initialize object."""
@@ -31,6 +37,7 @@ class Lexer:
         self.previous = -1
         self.num_re = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)(e\d+)?")
         self.identifier = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
+
 
     def __iter__(self):
         """Start the lexer iterator."""
@@ -61,13 +68,18 @@ class Lexer:
                 return (Lexer.OPEN_PAR, char)
             if char == ")":
                 return (Lexer.CLOSE_PAR, char)
-            # Do not handle minus operator.
-            if char in "+/*":
-                return (Lexer.OPERATOR, char)
+            if char == "+":
+                return (Lexer.PLUS, char)
+            if char == "-":
+                return (Lexer.MINUS, char)
+            if char == "*":
+                return (Lexer.MULTIPLY, char)
+            if char == "/":
+                return (Lexer.DIVIDE, char)
             if char in "^":
-                return (Lexer.OPERATOR, char)
+                return (Lexer.POWER, char)
             # user defined identifier
-            if char in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_":
+            if char in LETTERS:
                 self.current -= 1
                 identifier = self.identifier.match(self.data, self.current)
                 if identifier is None:
@@ -76,16 +88,13 @@ class Lexer:
                 return (Lexer.IDENTIFIER, identifier.group())
             match = self.num_re.match(self.data[self.current - 1 :])
             if match is None:
-                # If there is no match we may have a minus operator
-                if char == "-":
-                    return (Lexer.OPERATOR, char)
                 # If we get here, there is an error an unexpected char.
                 raise Exception(
                     f"Error at {self.current}: "
                     f"{self.data[self.current - 1:self.current + 10]}"
                 )
             self.current += match.end() - 1
-            return (Lexer.NUM, match.group().replace(" ", ""))
+            return (Lexer.NUMBER, match.group().replace(" ", ""))
         raise StopIteration()
 
 
@@ -100,10 +109,10 @@ def parse_E_prime(data):
     """Parse an expression E'."""
     try:
         token, operator = next(data)
-        
+
     except StopIteration:
         return None
-    if token == Lexer.OPERATOR:
+    if token == Lexer.PLUS or token == Lexer.MINUS:
         if operator not in "+-":
             data.error(f"Unexpected token: '{operator}'.")
         T = parse_T(data)
@@ -129,8 +138,8 @@ def parse_T_prime(data):
         token, operator = next(data)
     except StopIteration:
         return None
-    if token == Lexer.OPERATOR and operator in "*/":
-        
+    if token == Lexer.MULTIPLY or token == Lexer.DIVIDE:
+
         # else:
         F = parse_F(data)
         _T_prime = parse_T_prime(data)  # noqa
@@ -139,11 +148,11 @@ def parse_T_prime(data):
         # We don't need the result of the recursion,
         # only the recuscion itself
         return F if operator == "*" else 1 / F
-    if token == Lexer.OPERATOR and operator == "^":
+    if token == Lexer.POWER:
         #calculate power
         F = parse_F(data)
         _T_prime = parse_T_prime(data)
-    
+
         return F * F
     data.put_back()
     return None
@@ -165,7 +174,7 @@ def parse_F(data):
         if next(data) != (Lexer.CLOSE_PAR, ")"):
             data.error("Unbalanced parenthesis.")
         return E
-    if token == Lexer.NUM:
+    if token == Lexer.NUMBER:
         return float(value)
     raise data.error(f"Unexpected token: {value}.")
 
@@ -179,6 +188,9 @@ def parse(source_code):
 if __name__ == "__main__":
     expressions = [
         "4 * 4 * 5",
+        "4 ^ 2 + (2 + 3)",
+        "4 * 4 * 4"
+
     ]
     for expression in expressions:
         print(f"Expression: {expression}\t Result: {parse(expression)}")
