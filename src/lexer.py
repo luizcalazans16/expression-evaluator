@@ -9,12 +9,8 @@ class Lexer:
     OPEN_PAR = 1
     CLOSE_PAR = 2
     NUMBER = 3
-    PLUS      = 4
-    MINUS     = 5
-    MULTIPLY  = 6
-    DIVIDE    = 7
-    POWER = 8
-    IDENTIFIER = 9
+    OPERATOR = 4
+    IDENTIFIER = 5
 
     def __init__(self, data):
         """Initialize object."""
@@ -54,16 +50,8 @@ class Lexer:
                 return (Lexer.OPEN_PAR, char)
             if char == ")":
                 return (Lexer.CLOSE_PAR, char)
-            if char == "+":
-                return (Lexer.PLUS, char)
-            if char == "-":
-                return (Lexer.MINUS, char)
-            if char == "*":
-                return (Lexer.MULTIPLY, char)
-            if char == "/":
-                return (Lexer.DIVIDE, char)
-            if char in "^":
-                return (Lexer.POWER, char)
+            if char in "+/*^=":
+                return (Lexer.OPERATOR, char)
             # user defined identifier
             if char in LETTERS:
                 self.current -= 1
@@ -75,6 +63,8 @@ class Lexer:
             match = self.num_re.match(self.data[self.current - 1 :])
             if match is None:
                 # If we get here, there is an error an unexpected char.
+                if char == "-":
+                    return (Lexer.OPERATOR, char)
                 raise Exception(
                     f"Error at {self.current}: "
                     f"{self.data[self.current - 1:self.current + 10]}"
@@ -97,8 +87,9 @@ def parse_E_prime(data):
         token, operator = next(data)
     except StopIteration:
         return None
-    if token != Lexer.OPEN_PAR and token != Lexer.CLOSE_PAR:
-        if token != Lexer.PLUS and token != Lexer.MINUS:
+
+    if token == Lexer.OPERATOR:
+        if operator not in "+-":
             data.error(f"Unexpected token: '{operator}'.")
         T = parse_T(data)
         # We don't need the result of the recursion,
@@ -117,17 +108,19 @@ def parse_T(data):
 
     if F_prime is not None:
         return F ** F_prime
-    print('parse_T',F, T_prime)
     return F if T_prime is None else F * T_prime
 
 def parse_F_prime(data):
+    """Parse an expression T'."""
     try:
         token, operator = next(data)
     except StopIteration:
         return None
-    if token == Lexer.POWER:
+    if token == Lexer.OPERATOR and operator in "^":
         F = parse_F(data)
-        _F_prime = parse_F_prime(data)
+        # We don't need the result of the recursion,
+        # only the recuscion itself
+        _F_prime = parse_F_prime(data)  # noqa
         return F if operator == "^" else None
     data.put_back()
     return None
@@ -138,7 +131,7 @@ def parse_T_prime(data):
         token, operator = next(data)
     except StopIteration:
         return None
-    if token == Lexer.MULTIPLY or token == Lexer.DIVIDE:
+    if token == Lexer.OPERATOR and operator in "*/":
         # else:
         F = parse_F(data)
         _T_prime = parse_T_prime(data)  # noqa
