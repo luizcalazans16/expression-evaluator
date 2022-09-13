@@ -1,8 +1,6 @@
 import re
 
 
-LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
-
 class Lexer:
     """Implements the expression lexer."""
 
@@ -19,7 +17,7 @@ class Lexer:
         self.previous = -1
         self.num_re = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)(e\d+)?")
         self.identifier = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
-
+        self.symbol_table = {'x': 6}
 
     def __iter__(self):
         """Start the lexer iterator."""
@@ -38,6 +36,19 @@ class Lexer:
     def put_back(self):
         self.current = self.previous
 
+    def next_operator(self):
+        char = self.data[self.current + 1]
+        if char in "+/*^=":
+            return (Lexer.OPERATOR, char)
+        return None
+
+    def add_to_symbol_table(self, value, key):
+        self.symbol_table[key] = value
+        return value
+
+    def get_from_symbol_table(self, value):
+        return self.symbol_table.get(value)
+
     def __next__(self):
         """Retrieve the next token."""
         if self.current < len(self.data):
@@ -52,25 +63,26 @@ class Lexer:
                 return (Lexer.CLOSE_PAR, char)
             if char in "+/*^=":
                 return (Lexer.OPERATOR, char)
-            # user defined identifier
-            if char in LETTERS:
-                self.current -= 1
-                identifier = self.identifier.match(self.data, self.current)
-                if identifier is None:
-                    self.error("Invalid identifier")
-                self.current = identifier.end()
-                return (Lexer.IDENTIFIER, identifier.group())
-            match = self.num_re.match(self.data[self.current - 1 :])
-            if match is None:
-                # If we get here, there is an error an unexpected char.
+
+            match_variable = self.identifier.match(
+                self.data[self.current - 1:])
+            match = self.num_re.match(self.data[self.current - 1:])
+
+            if match_variable is not None:
+                self.current += match_variable.end() - 1
+                return (Lexer.IDENTIFIER,
+                        match_variable.group().replace(" ", ""))
+
+            if match is None and match_variable is None:
                 if char == "-":
                     return (Lexer.OPERATOR, char)
                 raise Exception(
                     f"Error at {self.current}: "
                     f"{self.data[self.current - 1:self.current + 10]}"
                 )
-            self.current += match.end() - 1
-            return (Lexer.NUMBER, match.group().replace(" ", ""))
+            else:
+                self.current += match.end() - 1
+                return (Lexer.NUMBER, match.group().replace(" ", ""))
         raise StopIteration()
 
 
@@ -79,6 +91,47 @@ def parse_E(data):
     T = parse_T(data)
     E_prime = parse_E_prime(data)
     return T if E_prime is None else T + E_prime
+
+
+def parse_P(data):
+    return parse_P_prime(data)
+    if P_prime is not None:
+        return parse_P(data=data)
+    else:
+        return P_prime
+
+
+def parse_P_prime(data):
+    ID = parse_Id(data)
+    equals = parse_equals(data)
+    data.add_to_symbol_table(equals, ID)
+    if equals is None:
+        return parse_E(data=data)
+    return parse_P_prime(data=data)
+
+
+def parse_equals(data):
+    try:
+        token, operator = next(data)
+    except StopIteration:
+        return None
+    if token == Lexer.OPERATOR and operator == "=":
+        return parse_E(data=data)
+    data.put_back()
+    return None
+
+
+def parse_Id(data):
+    try:
+        token, value = next(data)
+    except StopIteration:
+        return None
+
+    if token == Lexer.IDENTIFIER:
+        if data.next_operator() == (Lexer.OPERATOR, "="):
+            return value
+    data.put_back()
+    return None
 
 
 def parse_E_prime(data):
@@ -92,9 +145,7 @@ def parse_E_prime(data):
         if operator not in "+-":
             data.error(f"Unexpected token: '{operator}'.")
         T = parse_T(data)
-        # We don't need the result of the recursion,
-        # only the recuscion itself
-        _E_prime = parse_E_prime(data)  # noqa
+        _E_prime = parse_E_prime(data)
         return T if operator == "+" else -1 * T
     data.put_back()
     return None
@@ -110,6 +161,7 @@ def parse_T(data):
         return F ** F_prime
     return F if T_prime is None else F * T_prime
 
+
 def parse_F_prime(data):
     """Parse an expression T'."""
     try:
@@ -118,12 +170,11 @@ def parse_F_prime(data):
         return None
     if token == Lexer.OPERATOR and operator in "^":
         F = parse_F(data)
-        # We don't need the result of the recursion,
-        # only the recuscion itself
-        _F_prime = parse_F_prime(data)  # noqa
+        _F_prime = parse_F_prime(data)
         return F if operator == "^" else None
     data.put_back()
     return None
+
 
 def parse_T_prime(data):
     """Parse an expression T'."""
@@ -137,11 +188,10 @@ def parse_T_prime(data):
         _T_prime = parse_T_prime(data)  # noqa
         if _T_prime is not None:
             return F * _T_prime
-        # We don't need the result of the recursion,
-        # only the recuscion itself
         return F if operator == "*" else 1 / F
     data.put_back()
     return None
+
 
 def parse_F(data):
     """Parse an expression F."""
@@ -156,17 +206,20 @@ def parse_F(data):
         return E
     if token == Lexer.NUMBER:
         return float(value)
+    if token == Lexer.IDENTIFIER:
+        return data.get_from_symbol_table(value)
     raise data.error(f"Unexpected token: {value}.")
 
 
 def parse(source_code):
     """Parse the source code."""
     lexer = Lexer(source_code)
-    return parse_E(lexer)
+    return parse_P(lexer)
 
 
 if __name__ == "__main__":
     expressions = [
+        "x = 2 ^ 2 y = 4 (x + y) / 2",
         "4 ^ 3",
         "4 * 4 * 5",
         "4 ^ 2 + (2 + 3)",
