@@ -6,6 +6,7 @@
 - [x] Sum, subtraction
 - [x] Multiplication, division
 - [x] Power
+- [x] Variables, identifiers
 
 
 ### Language definition:
