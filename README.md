@@ -11,9 +11,9 @@
 
 ### Language definition:
 ```
-P = P'
-P' = ID
-P' = E
+P = SP
+S = ID
+S = E
 ID = E
 E = TE'
 E' = +TE' | - TE' | &
@@ -25,7 +25,8 @@ num = [+-]?([0-9]+(.[0-9]+)?|.[0-9]+)(e[0-9]+)+)?)
 identifier = [a-zA-Z_][a-zA-Z0-9_]*
 ```
 ## Language definition meanings:
- - P is *payload*
+ - P is *program*
+ - S is *statement*
  - ID is *identifier*
  - E is *expression*
  - T is *term*

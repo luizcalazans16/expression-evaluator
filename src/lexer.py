@@ -17,7 +17,7 @@ class Lexer:
         self.previous = -1
         self.num_re = re.compile(r"[+-]?(\d+(\.\d*)?|\.\d+)(e\d+)?")
         self.identifier = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
-        self.symbol_table = {'x': 6}
+        self.symbol_table = {}
 
     def __iter__(self):
         """Start the lexer iterator."""
@@ -94,20 +94,20 @@ def parse_E(data):
 
 
 def parse_P(data):
-    return parse_P_prime(data)
+    return parse_S(data)
     if P_prime is not None:
         return parse_P(data=data)
     else:
         return P_prime
 
 
-def parse_P_prime(data):
+def parse_S(data):
     ID = parse_Id(data)
     equals = parse_equals(data)
     data.add_to_symbol_table(equals, ID)
     if equals is None:
         return parse_E(data=data)
-    return parse_P_prime(data=data)
+    return parse_S(data=data)
 
 
 def parse_equals(data):
