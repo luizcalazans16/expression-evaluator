@@ -1,6 +1,5 @@
 import re
 
-
 class Lexer:
     """Implements the expression lexer."""
 
