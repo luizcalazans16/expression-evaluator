@@ -1,5 +1,5 @@
 import re
-
+import math
 class Lexer:
     """Implements the expression lexer."""
 
@@ -8,6 +8,12 @@ class Lexer:
     NUMBER = 3
     OPERATOR = 4
     IDENTIFIER = 5
+    FUNCTIONS_SUPORTED = {
+       'seno': math.sin,
+       'coseno': math.cos,
+       'tangente': math.tan
+    }
+
 
     def __init__(self, data):
         """Initialize object."""
@@ -62,11 +68,14 @@ class Lexer:
                 return (Lexer.CLOSE_PAR, char)
             if char in "+/*^=":
                 return (Lexer.OPERATOR, char)
-
+            match_funcions = self.identifier.match(self.data, self.current - 1)
+            # get the function name
+            if match_funcions:
+                if match_funcions.group() in Lexer.FUNCTIONS_SUPORTED:
+                   return (Lexer.IDENTIFIER, match_funcions.group())
             match_variable = self.identifier.match(
                 self.data[self.current - 1:])
             match = self.num_re.match(self.data[self.current - 1:])
-
             if match_variable is not None:
                 self.current += match_variable.end() - 1
                 return (Lexer.IDENTIFIER,
@@ -94,16 +103,16 @@ def parse_E(data):
 
 def parse_P(data):
     return parse_S(data)
-    if P_prime is not None:
-        return parse_P(data=data)
-    else:
-        return P_prime
 
 
 def parse_S(data):
     ID = parse_Id(data)
     equals = parse_equals(data)
     data.add_to_symbol_table(equals, ID)
+    # print("ID", ID, parse_E(data=data))
+    if ID in Lexer.FUNCTIONS_SUPORTED:
+       functions = parse_P(data=data)
+       return Lexer.FUNCTIONS_SUPORTED[ID](parse_P(data=data))
     if equals is None:
         return parse_E(data=data)
     return parse_S(data=data)
@@ -129,6 +138,11 @@ def parse_Id(data):
     if token == Lexer.IDENTIFIER:
         if data.next_operator() == (Lexer.OPERATOR, "="):
             return value
+        else:
+            if value in Lexer.FUNCTIONS_SUPORTED:
+                return value
+
+
     data.put_back()
     return None
 
@@ -218,12 +232,8 @@ def parse(source_code):
 
 if __name__ == "__main__":
     expressions = [
-        "x = 2 ^ 2 y = 4 (x + y) / 2",
-        "4 ^ 3",
-        "4 * 4 * 5",
-        "4 ^ 2 + (2 + 3)",
-        "4 * 4 * 4",
-        "105 / 9"
+		"seno(2)",
+		"coseno(5)"
     ]
     for expression in expressions:
         print(f"Expression: {expression}\t Result: {parse(expression)}")
