@@ -6,6 +6,8 @@
 - [x] Sum, subtraction
 - [x] Multiplication, division
 - [x] Power
+- [x] Logarithm
+- [x] Square root
 - [x] Variables, identifiers
 
 

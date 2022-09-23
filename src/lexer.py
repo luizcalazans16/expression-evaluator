@@ -9,9 +9,11 @@ class Lexer:
     OPERATOR = 4
     IDENTIFIER = 5
     FUNCTIONS_SUPORTED = {
-       'seno': math.sin,
-       'coseno': math.cos,
-       'tangente': math.tan
+       'sin': math.sin,
+       'cos': math.cos,
+       'tan': math.tan,
+       'sqrt': math.sqrt,
+       'log': math.log10
     }
 
 
@@ -232,8 +234,18 @@ def parse(source_code):
 
 if __name__ == "__main__":
     expressions = [
-		"seno(2)",
-		"coseno(5)"
+		"cos(60)",
+        "sqrt(16)",
+        "sqrt(9)",
+        "log(5)",
+        "cos(2)",
+        "cos(6)",
+        "x = 2 ^ 2 y = 4 (x + y) / 2",
+        "4 ^ 3",
+        "4 * 4 * 5",
+        "4 ^ 2 + (2 + 3)",
+        "4 * 4 * 4",
+        "105 / 9"
     ]
     for expression in expressions:
         print(f"Expression: {expression}\t Result: {parse(expression)}")
